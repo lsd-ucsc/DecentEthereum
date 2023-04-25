@@ -17,7 +17,7 @@
 #include <SimpleObjects/Internal/make_unique.hpp>
 
 #include "HostBlockService.hpp"
-//#include "Pubsub/SubscriptionMgr.hpp"
+#include "Pubsub/SubscriberService.hpp"
 #include "RandomGenerator.hpp"
 #include "Timestamper.hpp"
 
@@ -73,9 +73,14 @@ public:
 		uint64_t startBlockNum,
 		const EclipseMonitor::Eth::ContractAddr& syncContractAddr,
 		const std::string& syncEventSign,
+		std::unique_ptr<Pubsub::SubscriberService> subSvc,
 		std::unique_ptr<HostBlockService> hostBlkSvc
 	) :
+		m_logger(
+			DecentEnclave::Common::LoggerFactory::GetLogger("BlockchainMgr")
+		),
 		m_monitorConfig(mConfig),
+		m_monitorMutex(),
 		m_monitor(
 			SimpleObjects::Internal::make_unique<EclipseMonitorType>(
 				m_monitorConfig,
@@ -94,11 +99,14 @@ public:
 			)
 		),
 		m_lastChkptIter(0),
+		m_subSvc(std::move(subSvc)),
 		m_hostBlkSvc(std::move(hostBlkSvc)),
-		m_logger(DecentEnclave::Common::LoggerFactory::GetLogger("BlockchainMgr"))
+		m_lastValidatedBlkNum()
 	{
 		const auto latestBlkNum = m_hostBlkSvc->GetLatestBlockNum();
 		m_monitor->RefreshBootstrapPlan(latestBlkNum, &startBlockNum);
+
+		m_subSvc->Start(m_monitor->GetEventManager());
 	}
 
 
@@ -107,7 +115,36 @@ public:
 
 	void AppendBlock(const std::vector<uint8_t>& headerRlp)
 	{
+		std::lock_guard<std::mutex> lock(m_monitorMutex);
 		m_monitor->Update(headerRlp);
+	}
+
+	const Pubsub::SubscriberService& GetSubscriberService() const
+	{
+		return *m_subSvc;
+	}
+
+	EclipseMonitor::MonitorSecState GetMonitorSecState() const
+	{
+		std::lock_guard<std::mutex> lock(m_monitorMutex);
+		const auto& monitor = *m_monitor;
+		return monitor.GetMonitorSecState();
+	}
+
+	SimpleObjects::Bytes GetLastValidatedBlkNum() const
+	{
+		std::lock_guard<std::mutex> lock(m_monitorMutex);
+		return m_lastValidatedBlkNum;
+	}
+
+	const EclipseMonitor::Eth::EventManager& GetEventManager() const
+	{
+		return *m_monitor->GetEventManager();
+	}
+
+	EclipseMonitor::Eth::EventManager& GetEventManager()
+	{
+		return *m_monitor->GetEventManager();
 	}
 
 
@@ -115,6 +152,8 @@ private:
 
 	void OnHeaderValidated(const EclipseMonitor::Eth::HeaderMgr& hdr)
 	{
+		m_lastValidatedBlkNum = hdr.GetRawHeader().get_Number();
+
 		auto receiptsMgrGetter =
 			[this](EclipseMonitor::Eth::BlockNumber blkNum)
 				-> EclipseMonitor::Eth::ReceiptsMgr
@@ -222,11 +261,14 @@ private:
 
 private:
 
+	DecentEnclave::Common::Logger m_logger;
 	EclipseMonitor::MonitorConfig m_monitorConfig;
+	mutable std::mutex m_monitorMutex;
 	std::unique_ptr<EclipseMonitorType> m_monitor;
 	uint64_t m_lastChkptIter;
+	std::unique_ptr<Pubsub::SubscriberService> m_subSvc;
 	std::unique_ptr<HostBlockService> m_hostBlkSvc;
-	DecentEnclave::Common::Logger m_logger;
+	SimpleObjects::Bytes m_lastValidatedBlkNum;
 };
 
 
