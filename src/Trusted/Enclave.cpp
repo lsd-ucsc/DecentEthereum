@@ -9,12 +9,11 @@
 #include <DecentEnclave/Common/Platform/Print.hpp>
 #include <DecentEnclave/Common/Sgx/MbedTlsInit.hpp>
 
+#include <DecentEnclave/Trusted/AppCertRequester.hpp>
 #include <DecentEnclave/Trusted/DecentLambdaSvr.hpp>
 #include <DecentEnclave/Trusted/PlatformId.hpp>
 #include <DecentEnclave/Trusted/SKeyring.hpp>
 #include <DecentEnclave/Trusted/Sgx/EnclaveIdentity.hpp>
-#include <DecentEnclave/Trusted/AppCertRequester.hpp>
-#include <DecentEnclave/Trusted/DecentLambdaSvr.hpp>
 
 #include <DecentEthereum/Trusted/BlockchainMgr.hpp>
 #include <DecentEthereum/Trusted/Pubsub/SubscriberHandler.hpp>

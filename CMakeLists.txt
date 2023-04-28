@@ -216,3 +216,4 @@ FetchContent_MakeAvailable(git_curl)
 ################################################################################
 
 add_subdirectory(src)
+add_subdirectory(tests)

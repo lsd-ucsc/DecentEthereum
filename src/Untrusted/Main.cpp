@@ -16,8 +16,7 @@
 #include <DecentEnclave/Untrusted/Hosting/HeartbeatEmitterService.hpp>
 #include <DecentEnclave/Untrusted/Hosting/LambdaFuncServer.hpp>
 
-#include <DecentEthereum/Untrusted/HostBlockService.hpp>
-#include <DecentEthereum/Untrusted/DecentEthereumEnclave.hpp>
+#include <DecentEthereum/Untrusted/HostBlockServiceTasks.hpp>
 
 #include <SimpleConcurrency/Threading/ThreadPool.hpp>
 #include <SimpleJson/SimpleJson.hpp>
@@ -26,6 +25,7 @@
 #include <SimpleObjects/SimpleObjects.hpp>
 #include <SimpleSysIO/SysCall/Files.hpp>
 
+#include "DecentEthereumEnclave.hpp"
 #include "RunUntilSignal.hpp"
 
 
@@ -111,9 +111,6 @@ int main(int argc, char* argv[])
 	std::shared_ptr<HostBlockService> hostBlkSvc = HostBlockService::Create(
 		"http://localhost:8545"
 	);
-		// std::make_shared<HostBlockService>(
-		// 	8620000, "http://localhost:8545"
-		// );
 
 
 	// Sync Event Contract Address

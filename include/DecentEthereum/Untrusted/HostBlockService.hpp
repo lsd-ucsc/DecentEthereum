@@ -9,13 +9,9 @@
 #include <cstddef>
 
 #include <atomic>
-#include <chrono>
-#include <iostream>
 #include <memory>
-#include <thread>
 
 #include <EclipseMonitor/Eth/DataTypes.hpp>
-#include <SimpleConcurrency/Threading/TickingTask.hpp>
 #include <SimpleRlp/SimpleRlp.hpp>
 
 #include "BlockReceiver.hpp"
@@ -55,12 +51,12 @@ public:
 
 	~HostBlockService() = default;
 
-	size_t GetCurrBlockNum() const
+	EclipseMonitor::Eth::BlockNumber GetCurrBlockNum() const
 	{
 		return m_currBlockNum;
 	}
 
-	void SetUpdSvcStartBlock(size_t startBlockNum)
+	void SetUpdSvcStartBlock(EclipseMonitor::Eth::BlockNumber startBlockNum)
 	{
 		m_currBlockNum = startBlockNum;
 	}
@@ -87,6 +83,29 @@ public:
 		m_blockReceiver = blockReceiver;
 	}
 
+	void PushBlock(const std::vector<uint8_t>& headerRlp) const
+	{
+		std::shared_ptr<BlockReceiver> blockReceiver =
+			m_blockReceiver.lock();
+		if (blockReceiver == nullptr)
+		{
+			throw std::runtime_error(
+				"HostBlockService - BlockReceiver is not available"
+			);
+		}
+		else
+		{
+			blockReceiver->RecvBlock(headerRlp);
+		}
+	}
+
+	void PushBlock(EclipseMonitor::Eth::BlockNumber blockNum) const
+	{
+		auto headerRlp = m_gethReq.GetHeaderRlpByNum(blockNum);
+
+		return PushBlock(headerRlp);
+	}
+
 	bool TryPushNewBlock()
 	{
 		// if (!m_isUpdSvcStarted)
@@ -95,30 +114,20 @@ public:
 		// 		"HostBlockService - BlockUpdateService is not started"
 		// 	);
 		// }
+
+		std::vector<uint8_t> headerRlp;
 		try
 		{
-			auto headerRlp = m_gethReq.GetHeaderRlpByNum(m_currBlockNum);
-			++m_currBlockNum;
-
-			std::shared_ptr<BlockReceiver> blockReceiver =
-				m_blockReceiver.lock();
-			if (blockReceiver == nullptr)
-			{
-				throw std::runtime_error(
-					"HostBlockService - BlockReceiver is not available"
-				);
-			}
-			else
-			{
-				blockReceiver->RecvBlock(headerRlp);
-			}
-
-			return true;
+			headerRlp = m_gethReq.GetHeaderRlpByNum(m_currBlockNum);
 		}
 		catch(const std::exception& e)
 		{
 			return false;
 		}
+
+		PushBlock(headerRlp);
+		++m_currBlockNum;
+		return true;
 	}
 
 	template<typename _RetType>
@@ -143,147 +152,9 @@ private:
 	GethRequester m_gethReq;
 	std::weak_ptr<BlockReceiver> m_blockReceiver;
 	//std::atomic_bool m_isUpdSvcStarted;
-	std::atomic_size_t m_currBlockNum;
+	std::atomic<EclipseMonitor::Eth::BlockNumber> m_currBlockNum;
 
 }; // class HostBlockService
-
-
-class BlockUpdatorServiceTask :
-	public SimpleConcurrency::Threading::TickingTask<int64_t>
-{
-public: // static members:
-
-	using Base = SimpleConcurrency::Threading::TickingTask<int64_t>;
-
-	static constexpr int64_t sk_taskUpdIntervalMliSec = 200;
-
-public:
-	BlockUpdatorServiceTask(
-		std::shared_ptr<HostBlockService> blockUpdator,
-		int64_t retryIntervalMilSec
-	) :
-		Base(),
-		m_blockUpdator(blockUpdator),
-		m_retryIntervalMilSec(retryIntervalMilSec)
-	{}
-
-	virtual ~BlockUpdatorServiceTask() = default;
-
-
-protected:
-
-	virtual void Tick() override
-	{
-		auto blockUpdator = m_blockUpdator.lock();
-		if (blockUpdator)
-		{
-			if (blockUpdator->TryPushNewBlock())
-			{
-				// Successfully pushed a new block to the enclave
-				// keep pushing without delay
-				if (Base::IsTickIntervalEnabled())
-				{
-					Base::DisableTickInterval();
-				}
-			}
-			else
-			{
-				// Failed to push a new block to the enclave
-				// wait for a while before retry
-				if (!Base::IsTickIntervalEnabled())
-				{
-					Base::SetInterval(
-						sk_taskUpdIntervalMliSec,
-						m_retryIntervalMilSec
-					);
-				}
-			}
-		}
-		else
-		{
-			throw std::runtime_error(
-				"BlockUpdatorServiceTask - HostBlockService is not available"
-			);
-		}
-	}
-
-
-	virtual void SleepFor(int64_t mliSec) const override
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(mliSec));
-	}
-
-
-private:
-	std::weak_ptr<HostBlockService> m_blockUpdator;
-	int64_t m_retryIntervalMilSec;
-
-}; // class BlockUpdatorServiceTask
-
-
-class HostBlockStatusLogTask :
-	public SimpleConcurrency::Threading::TickingTask<int64_t>
-{
-public: // static members:
-
-	using Base = SimpleConcurrency::Threading::TickingTask<int64_t>;
-
-	static constexpr int64_t sk_taskUpdIntervalMliSec = 200;
-
-public:
-
-	HostBlockStatusLogTask(
-		std::shared_ptr<HostBlockService> blockUpdator,
-		int64_t updIntervalMliSec
-	) :
-		Base(sk_taskUpdIntervalMliSec, updIntervalMliSec),
-		m_blockUpdator(blockUpdator),
-		m_lastBlockNum(0),
-		m_updIntervalSec(updIntervalMliSec / 1000.0)
-	{}
-
-	virtual ~HostBlockStatusLogTask() = default;
-
-
-protected:
-
-	virtual void Tick() override
-	{
-		auto blockUpdator = m_blockUpdator.lock();
-		if (blockUpdator)
-		{
-			const size_t currBlockNum = blockUpdator->GetCurrBlockNum();
-
-			size_t diff = currBlockNum - m_lastBlockNum;
-			float rate = diff / m_updIntervalSec;
-
-			std::cout << "HostBlockServiceStatus: " <<
-				"BlockNum=" << currBlockNum << ", " <<
-				"Rate=" << rate << " blocks/sec" <<
-				std::endl;
-
-			m_lastBlockNum = currBlockNum;
-		}
-		else
-		{
-			throw std::runtime_error(
-				"HostBlockStatusLogTask - HostBlockService is not available"
-			);
-		}
-	}
-
-
-	virtual void SleepFor(int64_t mliSec) const override
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(mliSec));
-	}
-
-
-private:
-	std::weak_ptr<HostBlockService> m_blockUpdator;
-	size_t m_lastBlockNum;
-	float m_updIntervalSec;
-}; // class HostBlockStatusLogTask
 
 
 } // namespace DecentEthereum
