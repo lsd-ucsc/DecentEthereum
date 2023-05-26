@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 		enclave->SetReceiptRate(receiptRate);
 
 		auto start = TimeNow();
-		for (auto i = startBlockNum; i <= endBlockNum; ++i)
+		for (auto i = startBlockNum; i < endBlockNum; ++i)
 		{
 			hostBlkSvc->PushBlock(i);
 		}
@@ -102,6 +102,7 @@ int main(int argc, char* argv[])
 			<< "Took:       " << duration  << " seconds" << std::endl
 			<< "Throughput: " << rate      << " blocks / second" << std::endl;
 	}
+	enclave->SetReceiptRate(0.00);
 
 
 	return 0;

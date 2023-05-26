@@ -156,7 +156,7 @@ func RunTest(
 
 		// determine if we need to get receipts
 		lastByte = headerHash[len(headerHash)-1]
-		if lastByte < receiptLimit {
+		if lastByte < receiptLimit || receiptLimit == 255 {
 			// get receipts
 			receipts := GetReceipts(blockNum)
 
@@ -172,13 +172,13 @@ func RunTest(
 		}
 	}
 	endTime := time.Now()
-	elapsedTime := endTime.Sub(startTime)
+	elapsedTime := uint64(endTime.Sub(startTime).Seconds())
 	numBlocks := endBlock - startBlock
-	throughput := float64(numBlocks) / elapsedTime.Seconds()
+	throughput := float64(numBlocks) / float64(elapsedTime)
 
 	fmt.Println("Receipt %:  ", receiptRate*100, "%")
 	fmt.Println("Pushed:     ", numBlocks, "blocks")
-	fmt.Println("Took:       ", elapsedTime.Seconds(), "seconds")
+	fmt.Println("Took:       ", elapsedTime, "seconds")
 	fmt.Println("Throughput: ", throughput, "blocks / second")
 	fmt.Println("Read:       ", numReceiptsRead, "receipts")
 }

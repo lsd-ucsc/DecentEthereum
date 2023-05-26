@@ -28,7 +28,10 @@ namespace DecentEthereum
 {
 
 static uint8_t g_receiptLimit = 0;
+static size_t g_verifiedReceipts = 0;
 static std::unique_ptr<Trusted::HostBlockService> g_hostBlkSvc;
+static DecentEnclave::Common::Logger g_logger =
+	DecentEnclave::Common::LoggerFactory::GetLogger("Enclave");
 
 void GlobalInitialization()
 {
@@ -44,12 +47,12 @@ void PrintMyInfo()
 	using namespace DecentEnclave::Common;
 	using namespace DecentEnclave::Trusted;
 
-	Platform::Print::StrInfo(
+	g_logger.Info(
 		"My platform ID is              : " + PlatformId::GetIdHex()
 	);
 
 	const auto& selfHash = DecentEnclave::Trusted::Sgx::EnclaveIdentity::GetSelfHashHex();
-	Platform::Print::StrInfo(
+	g_logger.Info(
 		"My enclave hash is             : " + selfHash
 	);
 }
@@ -73,6 +76,11 @@ void SetReceiptRate(double receiptRate)
 	// (e.g., 255 * 0% = 0 -> 0)
 	// (e.g., 255 * 10% = 25.5 -> 25)
 	// (e.g., 255 * 100% = 255 -> 255)
+	g_logger.Info(
+		"Previously verified receipts: " +
+			std::to_string(g_verifiedReceipts)
+	);
+	g_verifiedReceipts = 0;
 }
 
 
@@ -83,7 +91,7 @@ void RecvBlock(const std::vector<uint8_t>& hdrRlp)
 	const auto& hdrHash = headerMgr.GetHash();
 	const auto& lastHashByte = hdrHash[hdrHash.size() - 1];
 
-	if (lastHashByte < g_receiptLimit)
+	if (lastHashByte < g_receiptLimit || g_receiptLimit == 255)
 	{
 		// verify receipt
 		EclipseMonitor::Eth::ReceiptsMgr receiptsMgr(
@@ -98,6 +106,7 @@ void RecvBlock(const std::vector<uint8_t>& hdrRlp)
 		{
 			throw std::runtime_error("Receipts root mismatch");
 		}
+		++g_verifiedReceipts;
 	}
 }
 
