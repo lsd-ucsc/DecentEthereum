@@ -282,8 +282,8 @@ def main() -> None:
 	PlotGraph(
 		inData=[ decentTimeEval, decentThroughputEval, ],
 		dataNames=[
-			'Decentagram Ethereum Time Elapsed',
-			'Decentagram Ethereum Throughput',
+			'Enclave Impl. Time Elapsed',
+			'Enclave Impl. Throughput',
 		],
 		isSecondary=[ False, True, ],
 		title='Decentagram Ethereum Block Processing Evaluation'
@@ -306,8 +306,8 @@ def main() -> None:
 		dataNames=[
 			'Go Ethereum Time Elapsed',
 			'Go Ethereum Throughput',
-			'Decentagram Ethereum Time Elapsed',
-			'Decentagram Ethereum Throughput',
+			'Enclave Impl. Time Elapsed',
+			'Enclave Impl. Throughput',
 		],
 		isSecondary=[
 			False,
@@ -315,7 +315,7 @@ def main() -> None:
 			False,
 			True,
 		],
-		title='Block Processing Evaluation'
+		title='Receipts Processing Evaluation'
 				f' (over {NUM_OF_BLOCKS} blocks)',
 		xLabel='Percentage of Transaction Receipts being Verified (%)',
 		yLabel='Time Elapsed (Seconds)',
