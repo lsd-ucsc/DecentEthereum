@@ -47,12 +47,11 @@ int main(int argc, char* argv[])
 	// Read in components config
 	std::string configJson = "{ \"AuthorizedComponents\": {} }";
 	auto config = SimpleJson::LoadStr(configJson);
-	std::vector<uint8_t> authListAdvRlp = Config::ConfigToAuthListAdvRlp(config);
 
 
 	// Host block service
 	std::shared_ptr<HostBlockService> hostBlkSvc = HostBlockService::Create(
-		"http://localhost:8545"
+		"http://localhost:8546"
 	);
 
 	// Test configurations
@@ -76,8 +75,7 @@ int main(int argc, char* argv[])
 	// Enclave
 	std::shared_ptr<DecentEthereumEnclave> enclave =
 		std::make_shared<DecentEthereumEnclave>(
-			hostBlkSvc,
-			authListAdvRlp
+			hostBlkSvc
 		);
 	hostBlkSvc->BindReceiver(enclave);
 

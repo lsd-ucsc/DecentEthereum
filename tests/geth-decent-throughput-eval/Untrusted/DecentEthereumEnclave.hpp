@@ -7,7 +7,7 @@
 
 
 #include <DecentEnclave/Common/Sgx/Exceptions.hpp>
-#include <DecentEnclave/Untrusted/Sgx/DecentSgxEnclave.hpp>
+#include <DecentEnclave/Untrusted/Sgx/SgxEnclave.hpp>
 
 #include <DecentEthereum/Untrusted/BlockReceiver.hpp>
 #include <DecentEthereum/Untrusted/HostBlockService.hpp>
@@ -35,12 +35,12 @@ namespace DecentEthereum
 {
 
 class DecentEthereumEnclave :
-	public DecentEnclave::Untrusted::Sgx::DecentSgxEnclave,
+	public DecentEnclave::Untrusted::Sgx::SgxEnclave,
 	public BlockReceiver
 {
 public: // static members:
 
-	using Base = DecentEnclave::Untrusted::Sgx::DecentSgxEnclave;
+	using Base = DecentEnclave::Untrusted::Sgx::SgxEnclave;
 
 
 public:
@@ -48,11 +48,10 @@ public:
 
 	DecentEthereumEnclave(
 		std::shared_ptr<HostBlockService> hostBlockService,
-		const std::vector<uint8_t>& authList,
 		const std::string& enclaveImgPath = DECENT_ENCLAVE_PLATFORM_SGX_IMAGE,
 		const std::string& launchTokenPath = DECENT_ENCLAVE_PLATFORM_SGX_TOKEN
 	) :
-		Base(authList, enclaveImgPath, launchTokenPath),
+		Base(enclaveImgPath, launchTokenPath),
 		m_hostBlockService(hostBlockService)
 	{
 		DECENTENCLAVE_SGX_ECALL_CHECK_ERROR_E_R(

@@ -42,10 +42,10 @@ decent_enclave_add_target_sgx(GethThroughputEval
 		libcurl
 		# Boost::asio
 	TRUSTED_SOURCE
-		${DECENTENCLAVE_INCLUDE}/DecentEnclave/SgxEdgeSources/AppLambdaHandler_t.cpp
+		# ${DECENTENCLAVE_INCLUDE}/DecentEnclave/SgxEdgeSources/AppLambdaHandler_t.cpp
 		${DECENTENCLAVE_INCLUDE}/DecentEnclave/SgxEdgeSources/Attestation_t.cpp
 		${DECENTENCLAVE_INCLUDE}/DecentEnclave/SgxEdgeSources/Crypto_t.cpp
-		${DECENTENCLAVE_INCLUDE}/DecentEnclave/SgxEdgeSources/SysIO_t.cpp
+		# ${DECENTENCLAVE_INCLUDE}/DecentEnclave/SgxEdgeSources/SysIO_t.cpp
 		${CMAKE_CURRENT_LIST_DIR}/Trusted/Enclave.cpp
 	TRUSTED_DEF
 		DECENTENCLAVE_DEV_LEVEL_0
