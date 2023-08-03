@@ -39,7 +39,6 @@ decent_enclave_add_target_sgx(DecentEthereumClient
 		mbedcrypto
 		mbedx509
 		mbedtls
-		cppcodec
 		libcurl
 		Boost::asio
 	TRUSTED_SOURCE
@@ -71,7 +70,6 @@ decent_enclave_add_target_sgx(DecentEthereumClient
 		mbedcrypto_enclave
 		mbedx509_enclave
 		mbedtls_enclave
-		cppcodec
 	EDL_PATH
 		${CMAKE_CURRENT_LIST_DIR}/Trusted/Enclave.edl
 	EDL_INCLUDE
