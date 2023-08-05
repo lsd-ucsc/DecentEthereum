@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <DecentEnclave/Common/Sgx/MbedTlsInit.hpp>
@@ -27,6 +28,7 @@ using namespace DecentEnclave;
 using namespace DecentEnclave::Common;
 using namespace DecentEnclave::Untrusted;
 using namespace DecentEthereum;
+using namespace SimpleObjects;
 
 
 static inline uint64_t TimeNow()
@@ -37,22 +39,43 @@ static inline uint64_t TimeNow()
 
 int main(int argc, char* argv[])
 {
-	(void)argc;
-	(void)argv;
+	std::string configPath;
+	if (argc == 1)
+	{
+		configPath = "../../../tests/geth-decent-throughput-eval/components_config.json";
+	}
+	else if (argc == 2)
+	{
+		configPath = argv[1];
+	}
+	else
+	{
+		Common::Platform::Print::StrErr("Unexpected number of arguments.");
+		Common::Platform::Print::StrErr(
+			"Only the path to the components configuration file is needed."
+		);
+		return -1;
+	}
 
 	// Init MbedTLS
 	Common::Sgx::MbedTlsInit::Init();
 
 
 	// Read in components config
-	std::string configJson = "{ \"AuthorizedComponents\": {} }";
+	auto configFile = SimpleSysIO::SysCall::RBinaryFile::Open(configPath);
+	auto configJson = configFile->ReadBytes<std::string>();
 	auto config = SimpleJson::LoadStr(configJson);
 
 
 	// Host block service
-	std::shared_ptr<HostBlockService> hostBlkSvc = HostBlockService::Create(
-		"http://localhost:8546"
-	);
+	const auto& gethConfig = config.AsDict()[String("Geth")].AsDict();
+	std::string gethProto = gethConfig[String("Protocol")].AsString().c_str();
+	std::string gethHost = gethConfig[String("Host")].AsString().c_str();
+	uint32_t gethPort = gethConfig[String("Port")].AsCppUInt32();
+	std::string gethUrl =
+		gethProto + "://" + gethHost + ":" + std::to_string(gethPort);
+	std::shared_ptr<HostBlockService> hostBlkSvc =
+		HostBlockService::Create(gethUrl);
 
 	// Test configurations
 	std::vector<double> receiptRates = {
@@ -73,9 +96,14 @@ int main(int argc, char* argv[])
 
 
 	// Enclave
+	const auto& imgConfig = config.AsDict()[String("EnclaveImage")].AsDict();
+	std::string imgPath = imgConfig[String("ImagePath")].AsString().c_str();
+	std::string tokenPath = imgConfig[String("TokenPath")].AsString().c_str();
 	std::shared_ptr<DecentEthereumEnclave> enclave =
 		std::make_shared<DecentEthereumEnclave>(
-			hostBlkSvc
+			hostBlkSvc,
+			imgPath,
+			tokenPath
 		);
 	hostBlkSvc->BindReceiver(enclave);
 

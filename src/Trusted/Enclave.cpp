@@ -120,6 +120,7 @@ void Init(
 	EclipseMonitor::Eth::BlockNumber startBlkNum,
 	const EclipseMonitor::Eth::ContractAddr& syncContractAddr,
 	const std::string& syncEventSign,
+	const EclipseMonitor::Eth::ContractAddr& pubsubContractAddr,
 	std::unique_ptr<Trusted::HostBlockService> blkSvc
 )
 {
@@ -135,11 +136,7 @@ void Init(
 		syncEventSign,
 		SimpleObjects::Internal::
 			make_unique<Trusted::Pubsub::SubscriberService>(
-				// Pubsub Addr: 0x5651231eA05C0478f60c13a7f5FE291657012C86
-				EclipseMonitor::Eth::ContractAddr({
-					0x56U, 0x51U, 0x23U, 0x1eU, 0xa0U, 0x5cU, 0x04U, 0x78U, 0xf6U, 0x0cU,
-					0x13U, 0xa7U, 0xf5U, 0xfeU, 0x29U, 0x16U, 0x57U, 0x01U, 0x2cU, 0x86U,
-				}),
+				pubsubContractAddr,
 				"ServiceDeployed(address)",
 				"PublisherRegistered(address,address)",
 				"NotifySubscribers(bytes)"
@@ -178,6 +175,7 @@ extern "C" sgx_status_t ecall_decent_ethereum_init(
 	uint64_t start_blk_num,
 	const uint8_t* in_sync_addr,
 	const char* in_sync_esign,
+	const uint8_t* in_pubsub_addr,
 	void* host_blk_svc
 )
 {
@@ -199,6 +197,13 @@ extern "C" sgx_status_t ecall_decent_ethereum_init(
 
 		std::string syncEventSign(in_sync_esign);
 
+		EclipseMonitor::Eth::ContractAddr pubsubContractAddr;
+		std::copy(
+			in_pubsub_addr,
+			in_pubsub_addr + pubsubContractAddr.size(),
+			pubsubContractAddr.begin()
+		);
+
 		std::unique_ptr<Trusted::HostBlockService> blkSvc =
 			SimpleObjects::Internal::
 				make_unique<Trusted::HostBlockService>(host_blk_svc);
@@ -208,6 +213,7 @@ extern "C" sgx_status_t ecall_decent_ethereum_init(
 			start_blk_num,
 			syncContractAddr,
 			syncEventSign,
+			pubsubContractAddr,
 			std::move(blkSvc)
 		);
 		return SGX_SUCCESS;

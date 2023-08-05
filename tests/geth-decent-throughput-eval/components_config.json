@@ -1,7 +1,7 @@
 {
 	"EnclaveImage": {
-		"ImagePath": "libDecentEthereumClient_trusted.signed.so",
-		"TokenPath": "DecentEthereumClient_Enclave.token"
+		"ImagePath": "libGethThroughputEval_trusted.signed.so",
+		"TokenPath": "GethThroughputEval_Enclave.token"
 	},
 	"AuthorizedComponents": {
 		"0000000000000000000000000000000000000000000000000000000000000000" : {
@@ -28,9 +28,9 @@
 			"Name": "DecentEthereum",
 			"Endpoints" : {
 				"Inst1" : {
-					"IP": "0.0.0.0",
+					"IP": "127.0.0.1",
 					"Port": 10003,
-					"Incoming": true
+					"Incoming": false
 				}
 			}
 		}
@@ -38,11 +38,6 @@
 	"Geth": {
 		"Protocol": "http",
 		"Host": "localhost",
-		"Port": 8546,
-		"SyncAddr": "74Be867FBD89bC3507F145b36ba76cd0B1bF4f1A"
-	},
-	"PubSub": {
-		"StartBlock": 8875000,
-		"PubSubAddr": "5651231eA05C0478f60c13a7f5FE291657012C86"
+		"Port": 8546
 	}
 }

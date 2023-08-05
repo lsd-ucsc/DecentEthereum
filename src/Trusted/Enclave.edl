@@ -21,6 +21,7 @@ enclave
 			uint64_t start_blk_num,
 			[in, size=20] const uint8_t* in_sync_addr,
 			[in, string] const char* in_sync_esign,
+			[in, size=20] const uint8_t* in_pubsub_addr,
 			[user_check] void* host_blk_svc
 		);
 

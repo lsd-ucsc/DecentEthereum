@@ -23,6 +23,7 @@ extern "C" sgx_status_t ecall_decent_ethereum_init(
 	uint64_t         start_blk_num,
 	const uint8_t*   in_sync_addr,
 	const char*      in_sync_esign,
+	const uint8_t*   in_pubsub_addr,
 	void*            host_blk_svc
 );
 extern "C" sgx_status_t ecall_decent_ethereum_recv_block(
@@ -53,6 +54,7 @@ public:
 		EclipseMonitor::Eth::BlockNumber startBlkNum,
 		const EclipseMonitor::Eth::ContractAddr& syncContractAddr,
 		const std::string& syncEventSign,
+		const EclipseMonitor::Eth::ContractAddr& pubsubContractAddr,
 		std::shared_ptr<HostBlockService> hostBlockService,
 		const std::vector<uint8_t>& authList,
 		const std::string& enclaveImgPath = DECENT_ENCLAVE_PLATFORM_SGX_IMAGE,
@@ -71,6 +73,7 @@ public:
 			startBlkNum,
 			syncContractAddr.data(),
 			syncEventSign.c_str(),
+			pubsubContractAddr.data(),
 			m_hostBlockService.get()
 		);
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -15,9 +16,9 @@ import (
 )
 
 const (
-	LOCAL_ENDPOINT = "http://127.0.0.1:8545/"
-	START_BLOCK    = 8875000
-	END_BLOCK      = 8880000
+	COMPONENT_CONFIG_PATH = "../geth-decent-throughput-eval/components_config.json"
+	START_BLOCK           = 8875000
+	END_BLOCK             = 8880000
 )
 
 var (
@@ -34,7 +35,18 @@ var (
 		0.90,
 		1.00,
 	}
+	LOCAL_ENDPOINT = "http://localhost:8546"
 )
+
+type GethConfig struct {
+	Protocol string `json:"Protocol"`
+	Host     string `json:"Host"`
+	Port     int    `json:"Port"`
+}
+
+type ComponentConfig struct {
+	GethCfg GethConfig `json:"Geth"`
+}
 
 type PayloadBlock struct {
 	Method  string `json:"method"`
@@ -47,6 +59,21 @@ func PanicIfError(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ReadComponentConfig() *ComponentConfig {
+	// read config file
+	configFile, err := os.Open(COMPONENT_CONFIG_PATH)
+	PanicIfError(err)
+	defer configFile.Close()
+
+	// decode json config file
+	var config ComponentConfig
+	jsonParser := json.NewDecoder(configFile)
+	err = jsonParser.Decode(&config)
+	PanicIfError(err)
+
+	return &config
 }
 
 func HexStrToBytes(hexStr string) []byte {
@@ -184,6 +211,19 @@ func RunTest(
 }
 
 func main() {
+	// read config file
+	config := ReadComponentConfig()
+
+	// set local endpoint
+	localEndpoint := fmt.Sprintf(
+		"%s://%s:%d",
+		config.GethCfg.Protocol,
+		config.GethCfg.Host,
+		config.GethCfg.Port,
+	)
+	LOCAL_ENDPOINT = localEndpoint
+	fmt.Println("Local endpoint: ", LOCAL_ENDPOINT)
+
 	for _, receiptRate := range RECEIPT_RATE {
 		RunTest(
 			START_BLOCK,

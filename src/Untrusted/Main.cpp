@@ -5,6 +5,7 @@
 
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <DecentEnclave/Common/Platform/Print.hpp>
@@ -22,6 +23,7 @@
 #include <SimpleJson/SimpleJson.hpp>
 #include <SimpleRlp/SimpleRlp.hpp>
 #include <SimpleObjects/Internal/make_unique.hpp>
+#include <SimpleObjects/Codec/Hex.hpp>
 #include <SimpleObjects/SimpleObjects.hpp>
 #include <SimpleSysIO/SysCall/Files.hpp>
 
@@ -34,6 +36,7 @@ using namespace DecentEnclave::Common;
 using namespace DecentEnclave::Untrusted;
 using namespace DecentEthereum;
 using namespace SimpleConcurrency::Threading;
+using namespace SimpleObjects;
 using namespace SimpleSysIO::SysCall;
 
 
@@ -75,8 +78,23 @@ static void StartSendingBlocks(
 
 int main(int argc, char* argv[])
 {
-	(void)argc;
-	(void)argv;
+	std::string configPath;
+	if (argc == 1)
+	{
+		configPath = "../../src/components_config.json";
+	}
+	else if (argc == 2)
+	{
+		configPath = argv[1];
+	}
+	else
+	{
+		Common::Platform::Print::StrErr("Unexpected number of arguments.");
+		Common::Platform::Print::StrErr(
+			"Only the path to the components configuration file is needed."
+		);
+		return -1;
+	}
 
 	// Init MbedTLS
 	Common::Sgx::MbedTlsInit::Init();
@@ -87,9 +105,7 @@ int main(int argc, char* argv[])
 
 
 	// Read in components config
-	auto configFile = RBinaryFile::Open(
-		"../../src/components_config.json"
-	);
+	auto configFile = RBinaryFile::Open(configPath);
 	auto configJson = configFile->ReadBytes<std::string>();
 	auto config = SimpleJson::LoadStr(configJson);
 	std::vector<uint8_t> authListAdvRlp = Config::ConfigToAuthListAdvRlp(config);
@@ -107,32 +123,55 @@ int main(int argc, char* argv[])
 	);
 
 
+	// Geth configs
+	const auto& gethConfig = config.AsDict()[String("Geth")].AsDict();
+	std::string gethProto = gethConfig[String("Protocol")].AsString().c_str();
+	std::string gethHost = gethConfig[String("Host")].AsString().c_str();
+	uint32_t gethPort = gethConfig[String("Port")].AsCppUInt32();
+	std::string syncAddrHex = gethConfig[String("SyncAddr")].AsString().c_str();
+	auto syncAddrBytes = Codec::Hex::Decode<std::vector<uint8_t> >(syncAddrHex);
+	EclipseMonitor::Eth::ContractAddr syncAddr;
+	if (syncAddrBytes.size() != syncAddr.size())
+	{
+		throw std::runtime_error("Invalid Sync contract address.");
+	}
+
+
 	// Host block service
-	std::shared_ptr<HostBlockService> hostBlkSvc = HostBlockService::Create(
-		"http://localhost:8545"
-	);
+	std::string gethUrl =
+		gethProto + "://" + gethHost + ":" + std::to_string(gethPort);
+	std::shared_ptr<HostBlockService> hostBlkSvc =
+		HostBlockService::Create(gethUrl);
 
 
-	// Sync Event Contract Address
-	const EclipseMonitor::Eth::ContractAddr decentSyncV2Addr = {
-		0X74U, 0XBEU, 0X86U, 0X7FU, 0XBDU, 0X89U, 0XBCU, 0X35U,
-		0X07U, 0XF1U, 0X45U, 0XB3U, 0X6BU, 0XA7U, 0X6CU, 0XD0U,
-		0XB1U, 0XBFU, 0X4FU, 0X1AU,
-	};
+	// Pubsub configs
+	const auto& pubsubConfig = config.AsDict()[String("PubSub")].AsDict();
+	std::string pubsubAddrHex = pubsubConfig[String("PubSubAddr")].AsString().c_str();
+	uint64_t startBlockNum = pubsubConfig[String("StartBlock")].AsCppUInt64();
+	auto pubsubAddrBytes = Codec::Hex::Decode<std::vector<uint8_t> >(pubsubAddrHex);
+	EclipseMonitor::Eth::ContractAddr pubsubAddr;
+	if (pubsubAddrBytes.size() != pubsubAddr.size())
+	{
+		throw std::runtime_error("Invalid Pub-Sub contract address.");
+	}
+	std::copy(pubsubAddrBytes.begin(), pubsubAddrBytes.end(), pubsubAddr.begin());
+
 
 	// Enclave
-	// uint64_t startBlockNum = 8620000;
-	// uint64_t startBlockNum = 0;
-	// uint64_t startBlockNum = 8814199;
-	uint64_t startBlockNum = 8875000;
+	const auto& imgConfig = config.AsDict()[String("EnclaveImage")].AsDict();
+	std::string imgPath = imgConfig[String("ImagePath")].AsString().c_str();
+	std::string tokenPath = imgConfig[String("TokenPath")].AsString().c_str();
 	std::shared_ptr<DecentEthereumEnclave> enclave =
 		std::make_shared<DecentEthereumEnclave>(
 			EclipseMonitor::BuildEthereumMonitorConfig(),
 			startBlockNum,
-			decentSyncV2Addr,
+			syncAddr,
 			"SyncMsg(bytes16,bytes32)",
+			pubsubAddr,
 			hostBlkSvc,
-			authListAdvRlp
+			authListAdvRlp,
+			imgPath,
+			tokenPath
 		);
 	hostBlkSvc->BindReceiver(enclave);
 	StartSendingBlocks(*hostBlkSvc, startBlockNum);
