@@ -17,6 +17,7 @@
 
 #include <DecentEthereum/Trusted/BlockchainMgr.hpp>
 #include <DecentEthereum/Trusted/Pubsub/SubscriberHandler.hpp>
+#include <DecentEthereum/Trusted/ReceiptSubscriber.hpp>
 
 #include <EclipseMonitor/MonitorReport.hpp>
 
@@ -100,13 +101,28 @@ inline void RequestAppCert(const std::string& keyName)
 }
 
 
-inline void HandleSubscribeRequest(
+inline void HandlePubsubSubReq(
 	DecentEnclave::Trusted::LambdaHandlerMgr::SocketPtrType& socket,
 	const DecentEnclave::Trusted::LambdaHandlerMgr::MsgIdExtType& msgIdExt,
 	const DecentEnclave::Trusted::LambdaHandlerMgr::MsgContentType& msgContent
 )
 {
-	Trusted::Pubsub::HandleSubscribeRequest(
+	Trusted::Pubsub::SubReq(
+		g_blockchainMgr,
+		socket,
+		msgIdExt,
+		msgContent
+	);
+}
+
+
+inline void HandleReceiptSubReq(
+	DecentEnclave::Trusted::LambdaHandlerMgr::SocketPtrType& socket,
+	const DecentEnclave::Trusted::LambdaHandlerMgr::MsgIdExtType& msgIdExt,
+	const DecentEnclave::Trusted::LambdaHandlerMgr::MsgContentType& msgContent
+)
+{
+	Trusted::ReceiptSubReq(
 		g_blockchainMgr,
 		socket,
 		msgIdExt,
@@ -129,6 +145,9 @@ void Init(
 	GlobalInitialization();
 	PrintMyInfo();
 
+	RequestAppCert<DecentCert_Secp256r1>("Secp256r1");
+	RequestAppCert<DecentCert_Secp256k1>("Secp256k1");
+
 	g_blockchainMgr = std::make_shared<Trusted::BlockchainMgr<EthChainConfig> >(
 		mConf,
 		startBlkNum,
@@ -144,9 +163,6 @@ void Init(
 		std::move(blkSvc)
 	);
 
-	RequestAppCert<DecentCert_Secp256r1>("Secp256r1");
-	RequestAppCert<DecentCert_Secp256k1>("Secp256k1");
-
 	LambdaServerConfig lambdaSvrConfig(
 		"Secp256r1",
 		"Secp256r1"
@@ -154,8 +170,12 @@ void Init(
 	LambdaServerConfig::GetInstance(&lambdaSvrConfig);
 
 	LambdaHandlerMgr::GetInstance().RegisterHandler(
-		"Subscribe",
-		HandleSubscribeRequest
+		"PubSub.Subscribe",
+		HandlePubsubSubReq
+	);
+	LambdaHandlerMgr::GetInstance().RegisterHandler(
+		"Receipt.Subscribe",
+		HandleReceiptSubReq
 	);
 }
 

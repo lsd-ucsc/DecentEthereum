@@ -6,13 +6,16 @@
 #pragma once
 
 
+#include <AdvancedRlp/AdvancedRlp.hpp>
+
 #include <DecentEnclave/Common/Logging.hpp>
 #include <DecentEnclave/Trusted/DecentLambdaSvr.hpp>
 #include <DecentEnclave/Trusted/HeartbeatEmitterMgr.hpp>
 
-#include <AdvancedRlp/AdvancedRlp.hpp>
+#include <SimpleObjects/Codec/Hex.hpp>
 
 #include "../BlockchainMgr.hpp"
+#include "../DataType.hpp"
 #include "SubscriberService.hpp"
 
 
@@ -99,16 +102,6 @@ BuildNotifyEventDescr(
 }
 
 
-using SocketType =
-	typename DecentEnclave::Trusted::LambdaHandlerMgr::SocketType;
-using SocketPtrType =
-	typename DecentEnclave::Trusted::LambdaHandlerMgr::SocketPtrType;
-using MsgIdExtType =
-	typename DecentEnclave::Trusted::LambdaHandlerMgr::MsgIdExtType;
-using MsgContentType =
-	typename DecentEnclave::Trusted::LambdaHandlerMgr::MsgContentType;
-
-
 inline std::vector<uint8_t> BuildEmittedMsg(
 	SimpleObjects::Bytes&& secState,
 	SimpleObjects::Bytes&& latestBlkNum,
@@ -132,7 +125,7 @@ inline std::vector<uint8_t> BuildEmittedMsg(
 
 template<typename _NetConfig>
 inline void EmitterHandler(
-	SocketType& socket,
+	LambdaMsgSocket& socket,
 	ThreadedEventQueue& evQueue,
 	BlockchainMgr<_NetConfig>& bcMgr,
 	EclipseMonitor::Eth::EventCallbackId listenId
@@ -166,11 +159,11 @@ inline void EmitterHandler(
 
 
 template<typename _NetConfig>
-inline void HandleSubscribeRequest(
+inline void SubReq(
 	std::shared_ptr<BlockchainMgr<_NetConfig> > bcMgrPtr,
-	SocketPtrType& socket,
-	const MsgIdExtType& msgIdExt,
-	const MsgContentType& msgContentAdvRlp
+	LambdaMsgSocketPtr& socket,
+	const LambdaMsgIdExt& msgIdExt,
+	const LambdaMsgContent& msgContentAdvRlp
 )
 {
 	using namespace DecentEnclave::Common;
@@ -178,7 +171,8 @@ inline void HandleSubscribeRequest(
 
 	(void)msgIdExt;
 
-	static Logger s_logger = LoggerFactory::GetLogger("HandleSubscribeRequest");
+	static Logger s_logger =
+		LoggerFactory::GetLogger("DecentEthereum::Trusted::PubSub::SubReq");
 	static const SimpleObjects::String sk_labelPublisher("publisher");
 
 	// 1. lookup for the on-chain event manager address
@@ -193,12 +187,16 @@ inline void HandleSubscribeRequest(
 	if (eventMgrAddr == EclipseMonitor::Eth::ContractAddr())
 	{
 		s_logger.Error(
-			"HandleSubscribeRequest() failed to find the event manager address"
+			"Failed to find the event manager for publisher @" +
+				SimpleObjects::Codec::Hex::Encode<std::string>(pubAddr)
 		);
 		return;
 	}
 
 	// 2. subscribe to event manager first
+	s_logger.Debug("Subscribing to event manager @" +
+		SimpleObjects::Codec::Hex::Encode<std::string>(eventMgrAddr)
+	);
 	std::shared_ptr<ThreadedEventQueue> eventQueue =
 		std::make_shared<ThreadedEventQueue>();
 	auto listenId = bcMgrPtr->GetEventManager().Listen(
@@ -220,7 +218,7 @@ inline void HandleSubscribeRequest(
 	socket->SizedSendBytes(respMsg);
 
 	// 4. set up heartbeat emitter
-	std::shared_ptr<SocketType> ownedSocket = std::move(socket);
+	std::shared_ptr<LambdaMsgSocket> ownedSocket = std::move(socket);
 
 	HeartbeatEmitterMgr::GetInstance().AddEmitter(
 		[ownedSocket, eventQueue, bcMgrPtr, listenId]()
@@ -229,9 +227,7 @@ inline void HandleSubscribeRequest(
 		}
 	);
 
-	s_logger.Debug(
-		"HandleSubscribeRequest() received a subscribe request"
-	);
+	s_logger.Debug("Received a subscribe request");
 }
 
 } // namespace Pubsub
