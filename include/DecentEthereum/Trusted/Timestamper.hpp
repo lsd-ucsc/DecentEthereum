@@ -6,7 +6,7 @@
 #pragma once
 
 
-#include <DecentEnclave/Trusted/Time.hpp>
+#include <DecentEnclave/Common/Time.hpp>
 #include <EclipseMonitor/PlatformInterfaces.hpp>
 
 
@@ -29,7 +29,7 @@ public:
 
 	virtual uint64_t NowInSec() const override
 	{
-		return DecentEnclave::Trusted::UntrustedTime::Timestamp();
+		return DecentEnclave::Common::UntrustedTime::Timestamp();
 	}
 
 }; // class Timestamper
