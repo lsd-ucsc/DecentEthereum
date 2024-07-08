@@ -17,6 +17,9 @@
 
 namespace DecentEthereum
 {
+namespace Untrusted
+{
+
 
 class BlockUpdatorServiceTask :
 	public SimpleConcurrency::Threading::TickingTask<int64_t>
@@ -155,4 +158,7 @@ private:
 	float m_updIntervalSec;
 }; // class HostBlockStatusLogTask
 
+
+} // namespace Untrusted
 } // namespace DecentEthereum
+

@@ -18,6 +18,7 @@
 #include <DecentEthereum/Trusted/BlockchainMgr.hpp>
 #include <DecentEthereum/Trusted/Pubsub/SubscriberHandler.hpp>
 #include <DecentEthereum/Trusted/ReceiptSubscriber.hpp>
+#include <DecentEthereum/Trusted/Transaction.hpp>
 
 #include <EclipseMonitor/MonitorReport.hpp>
 
@@ -176,6 +177,22 @@ void Init(
 	LambdaHandlerMgr::GetInstance().RegisterHandler(
 		"Receipt.Subscribe",
 		HandleReceiptSubReq
+	);
+	LambdaHandlerMgr::GetInstance().RegisterHandler(
+		"Transaction.SendRaw",
+		[](
+			DecentEnclave::Trusted::LambdaHandlerMgr::SocketPtrType& socket,
+			const DecentEnclave::Trusted::LambdaHandlerMgr::MsgIdExtType& msgIdExt,
+			const DecentEnclave::Trusted::LambdaHandlerMgr::MsgContentType& msgContent
+		)
+		{
+			Trusted::Transaction::SendRaw(
+				g_blockchainMgr,
+				socket,
+				msgIdExt,
+				msgContent
+			);
+		}
 	);
 }
 

@@ -147,6 +147,11 @@ public:
 		return *m_monitor->GetEventManager();
 	}
 
+	const HostBlockService& GetHostBlockService() const
+	{
+		return *m_hostBlkSvc;
+	}
+
 
 private:
 

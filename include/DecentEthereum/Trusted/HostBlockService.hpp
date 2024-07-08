@@ -26,6 +26,14 @@ extern "C" sgx_status_t ocall_decent_ethereum_get_latest_blknum(
 	uint64_t*     out_blk_num
 );
 
+extern "C" sgx_status_t ocall_decent_ethereum_send_raw_transaction(
+	sgx_status_t* retval,
+	const void*   host_blk_svc,
+	const uint8_t* in_txn,
+	size_t in_txn_size,
+	uint8_t* out_txn_hash
+);
+
 
 namespace DecentEthereum
 {
@@ -68,6 +76,23 @@ public:
 		);
 
 		return ret;
+	}
+
+	std::array<uint8_t, 32> SendRawTransaction(
+		const std::vector<uint8_t>& bytes
+	) const
+	{
+		auto txnHash = std::array<uint8_t, 32>();
+
+		DECENTENCLAVE_SGX_OCALL_CHECK_ERROR_E_R(
+			ocall_decent_ethereum_send_raw_transaction,
+			m_ptr,
+			bytes.data(),
+			bytes.size(),
+			txnHash.data()
+		);
+
+		return txnHash;
 	}
 
 private:

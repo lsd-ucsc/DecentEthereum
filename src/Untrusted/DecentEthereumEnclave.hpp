@@ -36,6 +36,9 @@ extern "C" sgx_status_t ecall_decent_ethereum_recv_block(
 
 namespace DecentEthereum
 {
+namespace Untrusted
+{
+
 
 class DecentEthereumEnclave :
 	public DecentEnclave::Untrusted::Sgx::DecentSgxEnclave,
@@ -94,4 +97,7 @@ private:
 	std::shared_ptr<HostBlockService> m_hostBlockService;
 }; // class DecentEthereumEnclave
 
+
+} // namespace Untrusted
 } // namespace DecentEthereum
+

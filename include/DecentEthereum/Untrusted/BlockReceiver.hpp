@@ -13,6 +13,8 @@
 
 namespace DecentEthereum
 {
+namespace Untrusted
+{
 
 class BlockReceiver
 {
@@ -28,4 +30,7 @@ public:
 
 };
 
+
+} // namespace Untrusted
 } // namespace DecentEthereum
+

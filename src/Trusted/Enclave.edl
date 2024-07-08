@@ -45,6 +45,14 @@ enclave
 			[user_check] const void* host_blk_svc,
 			[out] uint64_t* out_blk_num
 		);
+
+		sgx_status_t ocall_decent_ethereum_send_raw_transaction(
+			[user_check] const void* host_blk_svc,
+			[in, size=in_txn_size] const uint8_t* in_txn,
+			size_t in_txn_size,
+			[out, size=32] uint8_t* out_txn_hash
+		);
+
 	}; // untrusted
 
 }; // enclave

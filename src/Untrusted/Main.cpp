@@ -35,6 +35,7 @@ using namespace DecentEnclave;
 using namespace DecentEnclave::Common;
 using namespace DecentEnclave::Untrusted;
 using namespace DecentEthereum;
+using namespace DecentEthereum::Untrusted;
 using namespace SimpleConcurrency::Threading;
 using namespace SimpleObjects;
 using namespace SimpleSysIO::SysCall;
@@ -272,3 +273,33 @@ extern "C" sgx_status_t ocall_decent_ethereum_get_latest_blknum(
 		return SGX_ERROR_UNEXPECTED;
 	}
 }
+
+extern "C" sgx_status_t ocall_decent_ethereum_send_raw_transaction(
+	const void* host_blk_svc,
+	const uint8_t* in_txn,
+	size_t in_txn_size,
+	uint8_t* out_txn_hash
+)
+{
+	const HostBlockService* blkSvc =
+		static_cast<const HostBlockService*>(host_blk_svc);
+
+	try
+	{
+		std::vector<uint8_t> txn(in_txn, in_txn + in_txn_size);
+		std::array<uint8_t, 32> txnHash = blkSvc->SendRawTransaction(txn);
+
+		std::copy(txnHash.begin(), txnHash.end(), out_txn_hash);
+
+		return SGX_SUCCESS;
+	}
+	catch (const std::exception& e)
+	{
+		DecentEnclave::Common::Platform::Print::StrDebug(
+			"ocall_decent_ethereum_send_raw_transaction failed with error " +
+			std::string(e.what())
+		);
+		return SGX_ERROR_UNEXPECTED;
+	}
+}
+

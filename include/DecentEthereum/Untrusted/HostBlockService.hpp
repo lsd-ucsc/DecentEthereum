@@ -20,6 +20,8 @@
 
 namespace DecentEthereum
 {
+namespace Untrusted
+{
 
 
 class HostBlockService :
@@ -118,6 +120,13 @@ public:
 		std::vector<uint8_t> headerRlp;
 		try
 		{
+			auto latestBlockNum = m_gethReq.GetBlockNumber();
+			if (latestBlockNum < m_currBlockNum)
+			{
+				// the latest block number is smaller than the block number
+				// we are waiting for
+				return false;
+			}
 			headerRlp = m_gethReq.GetHeaderRlpByNum(m_currBlockNum);
 		}
 		catch(const std::exception& e)
@@ -148,6 +157,14 @@ public:
 	}
 
 
+	std::array<uint8_t, 32> SendRawTransaction(
+		const std::vector<uint8_t>& bytes
+	) const
+	{
+		return m_gethReq.SendRawTransactionByBytes(bytes);
+	}
+
+
 private:
 	GethRequester m_gethReq;
 	std::weak_ptr<BlockReceiver> m_blockReceiver;
@@ -157,4 +174,5 @@ private:
 }; // class HostBlockService
 
 
+} // namespace Untrusted
 } // namespace DecentEthereum
