@@ -38,11 +38,11 @@
 	"Geth": {
 		"Protocol": "http",
 		"Host": "localhost",
-		"Port": 8546,
+		"Port": 8550,
 		"SyncAddr": "74Be867FBD89bC3507F145b36ba76cd0B1bF4f1A"
 	},
 	"PubSub": {
-		"StartBlock": 8875000,
-		"PubSubAddr": "5651231eA05C0478f60c13a7f5FE291657012C86"
+		"StartBlock": 0,
+		"PubSubAddr": "cA968d2E1cAd810B985ACDB5f9Adaa1Fa86De548"
 	}
 }

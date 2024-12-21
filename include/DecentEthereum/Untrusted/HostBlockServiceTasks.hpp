@@ -28,7 +28,7 @@ public: // static members:
 
 	using Base = SimpleConcurrency::Threading::TickingTask<int64_t>;
 
-	static constexpr int64_t sk_taskUpdIntervalMliSec = 200;
+	static constexpr int64_t sk_taskUpdIntervalMliSec = 100;
 
 public:
 	BlockUpdatorServiceTask(

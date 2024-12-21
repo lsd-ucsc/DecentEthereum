@@ -152,7 +152,7 @@ public:
 
 		auto txnHash = ProcRespSingleBytesArray<32>(respBodyJson);
 
-		// WaitAndGetTransactionReceipt(txnHash);
+		WaitAndGetTransactionReceipt(txnHash);
 
 		return txnHash;
 	}

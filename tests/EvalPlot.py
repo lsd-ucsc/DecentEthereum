@@ -144,6 +144,7 @@ def SaveFigure(
 ) -> None:
 	fig.write_image(outName + '.svg')
 	# fig.write_image(outName + '.png')
+	fig.write_html(outName + '.html')
 
 	fig.write_image(outName + '.pdf')
 	# mitigation for issue https://github.com/plotly/plotly.py/issues/3469
